@@ -10,7 +10,6 @@ export default function LightDarkThemeElement({
   toggleThemeChange,
   theme,
 }: LightDarkThemeElementProps) {
-  console.log(theme);
   return (
     <div className="w-44 h-8 rounded-full top-2 right-4 overflow-hidden absolute flex bg-[var(--component-bg)] z-1000">
       <div

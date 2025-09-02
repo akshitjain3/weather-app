@@ -13,7 +13,7 @@ const AstroHighlight = ({ sunrise, sunset }: AstroHighlightProps) => {
       <div className="flex flex-col items-center gap-4 flex-grow justify-center">
         <div className="flex items-center gap-2">
           <img
-            src="/assets/images/sunrise.png"
+            src="assets/images/sunrise.png"
             alt="Sunrise Icon"
             className="h-6 w-6"
           />
@@ -23,7 +23,7 @@ const AstroHighlight = ({ sunrise, sunset }: AstroHighlightProps) => {
         </div>
         <div className="flex items-center gap-2">
           <img
-            src="/assets/images/sunset.png"
+            src="assets/images/sunset.png"
             alt="Sunset Icon"
             className="h-6 w-6"
           />

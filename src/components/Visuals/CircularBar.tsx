@@ -1,4 +1,4 @@
-import BackgroundImage from "../../assets/images/aqi_background5.png";
+import BackgroundImage from "/assets/images/aqi_background5.png";
 import React from "react";
 
 type CircularBarProps = {

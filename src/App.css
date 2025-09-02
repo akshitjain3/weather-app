@@ -43,93 +43,11 @@
   font-family: "Montserrat", sans-serif;
 }
 
-:root {
-  line-height: 1.5;
-  font-weight: 400;
-
-  --page-bg: #ebe4ff;
-  --page-bg-rgb: 235, 228, 255;
-
-  --component-bg: #ffffff;
-  --component-bg-rgb: 255, 255, 255;
-
-  --component-bg2: antiquewhite;
-  --component-bg2-rgb: 250, 235, 215;
-
-  --headings: #823bff;
-  --headings-rgb: 130, 59, 255;
-  --headings-hover: #7135d9;
-
-  --text-color: #000000;
-  --text-color-rgb: 0, 0, 0;
-
-  --button-bg: #bb86fc;
-  --button-bg-rgb: 187, 134, 252;
-
-  --button-text: #ffffff;
-  --button-text-rgb: 255, 255, 255;
-
-  --sidebar: #d8cdff;
-  --sidebar-rgb: 216, 205, 255;
-
-  --navbar-bg: #d8cdff;
-  --navbar-bg-rgb: 216, 205, 255;
-
-  --navbar-text: #823bff;
-  --navbar-text-rgb: 130, 59, 255;
-
-  --text-color2: #03dac6;
-  --text-color2-rgb: 3, 218, 198;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-[data-theme="dark"] {
-  --page-bg: #000000;
-  --page-bg-rgb: 0, 0, 0;
-
-  --component-bg: #323232;
-  --component-bg-rgb: 50, 50, 50;
-
-  --component-bg2: #bb86fc;
-  --component-bg2-rgb: 187, 134, 252;
-
-  --headings: #bb86fc;
-  --headings-rgb: 187, 134, 252;
-  --headings-hover: #b171ff;
-
-  --text-color: #ebebeb;
-  --text-color-rgb: 235, 235, 235;
-
-  --button-bg: #03dac6;
-  --button-bg-rgb: 3, 218, 198;
-
-  --button-text: #ebebeb;
-  --button-text-rgb: 235, 235, 235;
-
-  --sidebar: #03dac6;
-  --sidebar-rgb: 3, 218, 198;
-
-  --navbar-bg: #323232;
-  --navbar-bg-rgb: 50, 50, 50;
-
-  --navbar-text: #bb86fc;
-  --navbar-text-rgb: 187, 134, 252;
-
-  --text-color2: #03dac6;
-  --text-color2-rgb: 3, 218, 198;
-}
-
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
 #root {
-  width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  height: 100%;
   text-align: center;
+  background-color: var(--page-bg);
 }
 
 .forecastCard {

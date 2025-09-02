@@ -9,7 +9,7 @@ function App() {
 
   return (
     <Provider store={store}>
-      <div data-theme={theme}>
+      <div data-theme={theme} className={`w-full p-8 bg-[var(--page-bg)]`}>
         <LightDarkThemeElement
           theme={theme}
           toggleThemeChange={() =>
