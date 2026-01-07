@@ -5,11 +5,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { type AppDispatch, type RootState } from "../../store";
 import { setIsLoading, setWeatherData } from "../../store/weatherSlice";
 import useDebounce from "../../custom-hooks/useDebounce";
-import { Loader } from "@googlemaps/js-api-loader";
 import {
   type ForecastDayType,
   type WeatherAPIResponseSuccessType,
   WeatherAPISchema,
+  type PhotonResponse,
+  type PhotonFeature,
+  type ScoredPhotonFeature,
+  type AutocompleteResult,
 } from "../types";
 import {
   lowercaseConditionText,
@@ -17,23 +20,11 @@ import {
 } from "../utilityFunctions";
 import useOutsideClick from "../../custom-hooks/useOutsideClick";
 
-interface GoogleMapsClasses {
-  Place: any;
-  AutocompleteSuggestion: any;
-  AutocompleteSessionToken: any;
-}
-
-declare global {
-  interface Window {
-    googleMapsClasses: GoogleMapsClasses;
-  }
-}
 const weatherAPIKey = import.meta.env.VITE_WEATHER_API_KEY;
-const GoogleAPIKey = import.meta.env.VITE_GOOGLE_APIKEY;
 const SearchCont = () => {
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [autocompleteResults, setAutoCompleteResults] = useState<
-    { name: string; place_id: string }[] | null
+    { name: string; lat: number; lng: number }[] | null
   >(null);
   const [inputQuery, setInputQuery] = useState("");
   const [selectedResult, setSelectedResult] = useState<{
@@ -49,7 +40,6 @@ const SearchCont = () => {
   const searchQueryTimerRef = useRef<number | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const sessionToken = useRef<any | null>(null);
   const lastSearchCords = useRef<{ lat: number; lng: number } | null>(null);
   const skipAutocomplete = useRef<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -62,47 +52,95 @@ const SearchCont = () => {
     setIsInputExpanded((old) => !old);
   }
 
-  //called when there is a change in input query after debouncing
+  function scorePhotonFeatures(
+    features: PhotonFeature[]
+  ): ScoredPhotonFeature[] {
+    return features.map((feature) => {
+      const { properties } = feature;
+      let score = 0;
+
+      // Place hierarchy (most important)
+      switch (properties.type) {
+        case "city":
+          score += 100;
+          break;
+        case "town":
+          score += 80;
+          break;
+        case "village":
+          score += 60;
+          break;
+        case "county":
+          score += 40;
+          break;
+        default:
+          score += 10;
+      }
+
+      // Penalize POIs / infrastructure
+      if (
+        properties.osm_key === "railway" ||
+        properties.osm_value === "station" ||
+        properties.type === "house"
+      ) {
+        score -= 50;
+      }
+
+      // Soft India bias (NOT a filter)
+      if (properties.countrycode === "IN") {
+        score += 30;
+      }
+
+      return { feature, score };
+    });
+  }
+
   async function handleAutoSearchComplete() {
-    //skip autocomplete feature is the session token is not present/ input is less than 2 characters/ an option from dropdown is selected
-    if (
-      !sessionToken.current ||
-      inputQuery.length < 2 ||
-      skipAutocomplete.current
-    ) {
-      //if the input was reset and there are some previous suggestions than clear it
+    if (inputQuery.length < 2 || skipAutocomplete.current) {
       setAutoCompleteResults(null);
-      //reset skip when a suggestion is selected flag
       skipAutocomplete.current = false;
       return;
     }
 
-    //fetching suggestions
     try {
-      const request = {
-        input: inputQuery,
-        sessionToken: sessionToken.current,
-        includedPrimaryTypes: ["locality", "administrative_area_level_1"],
-        language: "en",
-        region: "IN",
-      };
+      const params = new URLSearchParams();
+      params.set("q", inputQuery);
+      params.set("limit", "10");
+      params.set("lang", "en");
+      params.set("lat", "20.5937"); // India bias
+      params.set("lon", "78.9629");
 
-      const { suggestions: autocompleteSuggestions } =
-        await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(
-          request
-        );
+      params.append("layer", "city");
+      params.append("layer", "locality");
+      params.append("layer", "county");
 
-      if (autocompleteSuggestions && autocompleteSuggestions.length > 0) {
-        setAutoCompleteResults(
-          autocompleteSuggestions.slice(0, 5).map((suggestion) => ({
-            place_id: suggestion.placePrediction?.placeId || "",
-            name: suggestion.placePrediction?.text.text || "",
-          }))
-        );
-        setShowAutocompleteResults(true);
-      }
+      const response = await fetch(
+        `https://photon.komoot.io/api?${params.toString()}`
+      );
+
+      if (!response.ok) throw new Error("Autocomplete failed");
+
+      const data: PhotonResponse = await response.json();
+
+      const scored: ScoredPhotonFeature[] = scorePhotonFeatures(data.features);
+
+      const topResults: PhotonFeature[] = scored
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map((s) => s.feature);
+
+      const autocompleteResults: AutocompleteResult[] = topResults.map((f) => ({
+        name: f.properties.state
+          ? `${f.properties.name}, ${f.properties.state}`
+          : f.properties.name,
+        lat: f.geometry.coordinates[1],
+        lng: f.geometry.coordinates[0],
+      }));
+
+      setAutoCompleteResults(autocompleteResults);
+      setShowAutocompleteResults(autocompleteResults.length > 0);
     } catch (e) {
-      if (e instanceof Error) console.log("Error fetching autocomplete data.");
+      console.error("Error fetching autocomplete data");
     }
   }
 
@@ -113,31 +151,21 @@ const SearchCont = () => {
 
   //handle clicking on a suggestion
   const handleSelectSearchResult = ({
-    place_id,
     name,
+    lat,
+    lng,
   }: {
-    place_id: string;
     name: string;
+    lat: number;
+    lng: number;
   }) => {
-    try {
-      //getting the co-ords of the selected suggestion and storing it in state
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ placeId: place_id }, (results) => {
-        if (results && results.length > 0) {
-          const lat = results[0].geometry.location.lat();
-          const lng = results[0].geometry.location.lng();
-          setSelectedResult({ lat, lng });
-        }
-      });
-      //Clearing suggestions after selection of a dropdown item
-      setAutoCompleteResults(null);
-      setShowAutocompleteResults(false);
-      skipAutocomplete.current = true;
-      setInputQuery(name);
-    } catch (error) {
-      console.error("Error fetching lat/lng details:", error);
-    }
+    setSelectedResult({ lat, lng });
+    setInputQuery(name);
+    setAutoCompleteResults(null);
+    setShowAutocompleteResults(false);
+    skipAutocomplete.current = true;
   };
+
   async function handleOnSearchClick() {
     //if input box is collapsed, expand and return
     if (!isInputExpanded) {
@@ -224,32 +252,6 @@ const SearchCont = () => {
     }
   }, [inputQuery]);
 
-  useEffect(() => {
-    const initializeGoogleMaps = async () => {
-      try {
-        const loader = new Loader({
-          apiKey: GoogleAPIKey,
-          version: "weekly",
-        });
-
-        const { Place, AutocompleteSuggestion, AutocompleteSessionToken } =
-          await loader.importLibrary("places");
-
-        sessionToken.current = new AutocompleteSessionToken();
-
-        window.googleMapsClasses = {
-          Place,
-          AutocompleteSuggestion,
-          AutocompleteSessionToken,
-        };
-      } catch (error) {
-        console.error("Error loading Google Maps:", error);
-      }
-    };
-
-    initializeGoogleMaps();
-  }, []);
-
   return (
     <div
       id="searchCont"
@@ -283,7 +285,7 @@ const SearchCont = () => {
                 {autocompleteResults.map((searchResult) => {
                   return (
                     <p
-                      key={searchResult.place_id}
+                      key={`${searchResult.lat}-${searchResult.lng}`}
                       onClick={() => handleSelectSearchResult(searchResult)}
                       className="bg-white/95 font-semibold px-4 py-2 bg-gr border-b-1 border-[var(--headings)] last:border-0 hover:brightness-90 cursor-pointer"
                     >

@@ -57,16 +57,20 @@ const WeatherLeftCont = () => {
               ,
             </p>
             <div className="grid grid-cols-[1fr_32px] justify-start items-center gap-x-2">
-              <p className="text-2xl font-semibold text-[var(--component-bg)] text-left">
-                {weatherData.location.name}
-              </p>
+              <div className="flex flex-col">
+                <p className="text-2xl font-semibold text-[var(--component-bg)] text-left">
+                  {weatherData.location.name}
+                </p>
+
+                <p className="text-lg font-medium text-[var(--component-bg)] text-left">
+                  {weatherData.location.region}, {weatherData.location.country}
+                </p>
+              </div>
+
               <MdLocationPin
                 className="text-[var(--text-color2)] row-span-2 aspect-square w-8"
                 size={32}
               />
-              <p className="text-lg font-medium text-[var(--component-bg)]">
-                {weatherData.location.region}, {weatherData.location.country}
-              </p>
             </div>
             <p className="text-2xl font-semibold text-[var(--text-color2)] text-left relative mt-3">
               Feels like:{" "}

@@ -229,3 +229,41 @@ export type WeatherComponentProps = {
 
 export type ForecastDayType =
   WeatherAPIResponseSuccessType["forecast"]["forecastday"][0];
+
+interface PhotonProperties {
+  name: string;
+  type: string; // "city", "house", "county", etc.
+  osm_key?: string; // "place", "railway", "boundary"
+  osm_value?: string; // "city", "station", etc.
+  countrycode?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+}
+
+interface PhotonGeometry {
+  type: "Point";
+  coordinates: [number, number]; // [lng, lat]
+}
+
+export interface PhotonFeature {
+  type: "Feature";
+  properties: PhotonProperties;
+  geometry: PhotonGeometry;
+}
+
+export interface PhotonResponse {
+  type: "FeatureCollection";
+  features: PhotonFeature[];
+}
+
+export interface ScoredPhotonFeature {
+  feature: PhotonFeature;
+  score: number;
+}
+
+export interface AutocompleteResult {
+  name: string;
+  lat: number;
+  lng: number;
+}
